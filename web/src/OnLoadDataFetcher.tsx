@@ -1,23 +1,22 @@
-import { useAuth0 } from "@auth0/auth0-react";
 import React, { useState, useEffect } from "react";
 
 function useAuthenticatedCall({
   url,
+  accessToken,
 }: {
   url: string;
-}): { data: unknown; error: string | null; startRequest: () => void } {
-  const { loginWithRedirect, getAccessTokenSilently } = useAuth0(); // get needed actions from the Auth0 sdk
+  accessToken: string;
+}): { data: unknown; error: string | null } {
   const [data, setData] = useState<unknown>({}); // return value from the request
   const [error, setError] = useState<string | null>(null); // an error message for failed requests
-  const [shouldFetch, setShouldFetch] = useState(false); // an indicator of if a fetch should be started
+  const [shouldFetch, setShouldFetch] = useState(true); // an indicator of if a fetch should be started
   const [fetching, setFetching] = useState(false); // an indication of if a fetch is in progress
-
+  const [lastAccessToken, setLastAccessToken] = useState("");
   useEffect((): void => {
     const makeAsyncFetchCall = async (): Promise<void> => {
       setFetching(true);
-      setShouldFetch(false);
+      // setShouldFetch(false);
 
-      const accessToken = await getAccessTokenSilently();
       const headers: HeadersInit = {};
       try {
         if (accessToken) {
@@ -25,7 +24,7 @@ function useAuthenticatedCall({
           headers["Authorization"] = `Bearer ${accessToken}`;
         }
         const response = await fetch(url, { headers });
-        if (!response.ok) {
+        if (response.ok) {
           // handle the successful response
           const data = await response.json();
           setData(data);
@@ -39,12 +38,12 @@ function useAuthenticatedCall({
               code: string;
               message: string;
             };
-            if (body.code === "mfaRequired") {
-              loginWithRedirect({ scope: "mfa:required" }); // add additional scope
-              return;
-            }
-          } catch (e) {}
-          loginWithRedirect(); // use scope from initial login
+            setData(body);
+            return;
+          } catch (e) {
+            console.error(e);
+            setError(JSON.stringify(e));
+          }
           return;
         }
 
@@ -54,40 +53,45 @@ function useAuthenticatedCall({
         console.error(e);
         setError(e.message);
       } finally {
-        setShouldFetch(false);
+        // setShouldFetch(false);
         setFetching(false);
       }
     };
 
-    if (!fetching && shouldFetch) {
+    if (!fetching && accessToken !== lastAccessToken) {
       makeAsyncFetchCall();
+      setLastAccessToken(accessToken);
     }
   }, [
     setData,
     setError,
-    shouldFetch,
-    setShouldFetch,
     fetching,
     setFetching,
     url,
-    getAccessTokenSilently,
-    loginWithRedirect,
+    accessToken,
+    lastAccessToken,
   ]);
 
   return {
     data,
     error,
-    startRequest: () => setShouldFetch(true),
   };
 }
 
-export function DataFetchAndDisplay({ url }: { url: string }): JSX.Element {
-  const { startRequest, data, error } = useAuthenticatedCall({ url });
+export function OnLoadDataFetchAndDisplay({
+  url,
+  accessToken,
+}: {
+  url: string;
+  accessToken: string;
+}): JSX.Element {
+  const { data, error } = useAuthenticatedCall({ url, accessToken });
   return (
     <div className="dataFetchingSection">
       <h2 className="dataFetcher--heading">{url}</h2>
-      <button onClick={() => startRequest()}>Get Data</button>
       <p>{error ? error : JSON.stringify(data)}</p>
     </div>
   );
 }
+
+//https://hire.lever.co/signatures/9435cba3-2e80-4767-9cd7-112fdfbb26e1?sigId=ba24f179-2f18-418c-abcd-8f72ddc10c91&documentType=offer
