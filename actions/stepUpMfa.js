@@ -1,28 +1,14 @@
-/** @type {PostLoginAction} */
-module.exports = async (event, context) => {
-  const scopes = event.actor.query.scope || "";
-  const splitScopes = scopes.split(" ");
+function extractScopesFromEvent(event) {
+  return event.transaction ? event.transaction.requested_scopes || "" : "";
+}
 
-  if(splitScopes.includes("mfa:required")){
-    return {
-      accessToken: {
-        customClaims:{
-          "https://kleeut.com:mfaTime": Date.now(),
-        }
-      },
-      command: {
-        type: "multifactor",
-        provider: "guardian"
-      }
-    };
+exports.onExecutePostLogin = async (event, api) => {
+  const scopes = extractScopesFromEvent(event);
+  if (scopes.includes("mfa:required")) {
+    console.log("Requiring MFA");
+    // Force the user to do a Guardian MFA.
+    api.multifactor.enable("guardian");
+    // Set to custom claim for when the MFA is complete.
+    api.accessToken.setCustomClaim(`https://kleeut.com:mfaTime`, Date.now());
   }
-  
-  const authMethods = (event.authentication || {}).methods || [];
-  return {
-    accessToken:{
-      customClaims:{
-          "https://kleeut.com:mfaTime":  (authMethods.filter(x => x.name === "mfa")[0] || {}).timestamp
-      }
-    }
-  };
 };

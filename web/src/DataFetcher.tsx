@@ -84,9 +84,8 @@ function useAuthenticatedCall({
 export function DataFetchAndDisplay({ url }: { url: string }): JSX.Element {
   const { startRequest, data, error } = useAuthenticatedCall({ url });
   return (
-    <div>
-      <hr />
-      <h2>{url}</h2>
+    <div className="dataFetchingSection">
+      <h2 className="dataFetcher--heading">{url}</h2>
       <button onClick={() => startRequest()}>Get Data</button>
       <p>{error ? error : JSON.stringify(data)}</p>
     </div>

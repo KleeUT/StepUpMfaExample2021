@@ -23,10 +23,10 @@ var jwtCheck = jwtMiddleware({
     cache: true,
     rateLimit: true,
     jwksRequestsPerMinute: 5,
-    jwksUri: "https://kleeut-blastfurnace.au.auth0.com/.well-known/jwks.json",
+    jwksUri: "https://kleeut-stepup-example.au.auth0.com/.well-known/jwks.json",
   }),
-  audience: "BlastfurnaceAPI",
-  issuer: "https://kleeut-blastfurnace.au.auth0.com/",
+  audience: "https://kleeut-stepup-example.au.auth0.com/api/v2/",
+  issuer: "https://kleeut-stepup-example.au.auth0.com/",
   algorithms: ["RS256"],
 });
 
@@ -74,7 +74,6 @@ function mfaRequired(
     code: "mfaRequired",
     message: "Recent MFA is required to access this endpoint",
   });
-  return;
 }
 
 server.get(
@@ -85,7 +84,6 @@ server.get(
     res.json({
       authenticated: true,
       mfa: true,
-      followMe: { onTwitter: "https://twiter.com/kleeut" },
     });
   }
 );
